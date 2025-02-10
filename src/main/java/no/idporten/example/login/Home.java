@@ -11,5 +11,6 @@ public class Home {
     public String index(Model model) {
         model.addAttribute("name", "Anders");
         return "index";
+
     }
 }
