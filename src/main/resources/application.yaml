@@ -2,3 +2,5 @@ spring:
   application:
     name:
       idporten-login-example
+  thymeleaf:
+    check-template-location: true
