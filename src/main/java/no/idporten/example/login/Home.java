@@ -1,13 +1,16 @@
 package no.idporten.example.login;
 
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@Controller
 public class Home {
 
     @GetMapping(value = "/")
-    public String index() {
-        return "Hello, world!";
+    public String index(Model model) {
+        model.addAttribute("name", "Anders");
+        return "index";
+
     }
 }
