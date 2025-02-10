@@ -1,0 +1,4 @@
+spring:
+  application:
+    name:
+      idporten-login-example
