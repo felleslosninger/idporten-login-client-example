@@ -9,6 +9,7 @@ import com.nimbusds.oauth2.sdk.pkce.CodeVerifier;
 
 import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
 import com.nimbusds.openid.connect.sdk.Nonce;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
@@ -20,11 +21,8 @@ public class LoginController {
     private final String callbackURIStr = "http://localhost:7040/callback";
     private final String endpointURIStr = "https://login.idporten.dev/authorize";
 
-    // used to check state in authorization responses.
-    private State lastState;
-
     @GetMapping(path = "/login")
-    public String login() {
+    public String login(HttpSession session) {
 
         ClientID clientID = new ClientID(clientIDStr);
 
@@ -47,7 +45,7 @@ public class LoginController {
              .build();
 
         // store state for verification in callback.
-        lastState = state;
+        session.setAttribute("lastState", state);
 
         String requestURIStr = request.toURI().toString();
         return "redirect:" + requestURIStr;
