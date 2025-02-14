@@ -4,6 +4,7 @@ import com.nimbusds.oauth2.sdk.*;
 import com.nimbusds.oauth2.sdk.id.State;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,21 +14,13 @@ import java.net.URI;
 @Controller
 public class LoginController {
 
-    // used to check state in authorization responses.
-    private State lastState = new State(); // TODO: dummy.
-
-    @GetMapping(path = "/login")
-    public String login() {
-        return "";
-    }
-
     @GetMapping(path = "/callback")
-    public String loginCallback(HttpServletRequest req, Model model) {
+    public String loginCallback(HttpServletRequest req, HttpSession session, Model model) {
         URI callbackURI = URI.create(req.getRequestURL() + "?" + req.getQueryString());
-        return handleCallbackURI(callbackURI, model);
+        return handleCallbackURI(callbackURI, session, model);
     }
 
-    private String handleCallbackURI(URI callbackURI, Model model) {
+    private String handleCallbackURI(URI callbackURI, HttpSession session, Model model) {
         AuthorizationResponse resp;
         try {
             resp = AuthorizationResponse.parse(callbackURI);
@@ -42,6 +35,14 @@ public class LoginController {
             return "login_fail";
         }
 
+        // authz code flow requires that state received in an authz response
+        // should match state sent in authz request.
+        // this should be stored in session from the authorization request.
+        State lastState = (State) session.getAttribute("lastState");
+        if (lastState == null) {
+            model.addAttribute("errmsg_attr", "No stored state found");
+            return "login_fail";
+        }
         if (!resp.getState().equals(lastState)) {
             model.addAttribute("errmsg_attr", "Bad state");
             return "login_fail";
@@ -49,9 +50,10 @@ public class LoginController {
 
         model.addAttribute("errmsg_attr", "Success");
 
-        AuthorizationCode authzCode = resp.toSuccessResponse()
-                                          .getAuthorizationCode();
-        model.addAttribute("authz_code_attr", authzCode.getValue());
+        String authzCode = resp.toSuccessResponse()
+                               .getAuthorizationCode()
+                               .getValue();
+        model.addAttribute("authz_code_attr", authzCode);
 
         return "login_success";
     }
