@@ -45,6 +45,8 @@ public class LoginController {
     public String login(HttpSession session) {
 
         State state = new State();
+        Nonce nonce = new Nonce();
+        CodeVerifier codeVerifier = new CodeVerifier();
 
         AuthenticationRequest request =
             new AuthenticationRequest.Builder(
@@ -54,30 +56,38 @@ public class LoginController {
                 callbackURI
             ).endpointURI(endpointURI)
              .state(state)
-             .nonce(new Nonce())
-             .codeChallenge(new CodeVerifier(), CodeChallengeMethod.S256) // PKCE
+             .nonce(nonce)
+             .codeChallenge(codeVerifier, CodeChallengeMethod.S256) // PKCE
              .prompt(Prompt.Type.LOGIN)
              .build();
 
         // store state for verification in callback.
         session.setAttribute("state", state);
+        session.setAttribute("nonce", nonce);
+        session.setAttribute("code_verifier", codeVerifier);
 
         String requestURIStr = request.toURI().toString();
         return "redirect:" + requestURIStr;
     }
 
     @GetMapping(path = "/callback")
-    public String loginCallback(HttpServletRequest req, HttpSession session, Model model) {
-        URI authzResponseURI = UriComponentsBuilder.fromUri(callbackURI)
-                                                   .query(req.getQueryString())
-                                                   .build()
-                                                   .toUri();
-        return handleCallbackURI(authzResponseURI, session, model);
+    public String loginCallback(HttpServletRequest req,
+                                HttpSession session,
+                                Model model) {
+        URI authzResponseURI =
+            UriComponentsBuilder.fromUri(callbackURI)
+                                .query(req.getQueryString())
+                                .build()
+                                .toUri();
+        return handleAuthzResponseURI(authzResponseURI, session, model);
     }
 
-    private String handleCallbackURI(URI authzResponseURI, HttpSession session, Model model) {
+    private String handleAuthzResponseURI(URI authzResponseURI,
+                                          HttpSession session,
+                                          Model model) {
         try {
-            AuthorizationResponse resp = AuthorizationResponse.parse(authzResponseURI);
+            AuthorizationResponse resp =
+                AuthorizationResponse.parse(authzResponseURI);
 
             // authz code flow requires that state received in an authz response
             // should match state sent in authz request.
