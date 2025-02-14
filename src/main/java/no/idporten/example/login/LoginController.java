@@ -1,6 +1,9 @@
 package no.idporten.example.login;
 
 import com.nimbusds.oauth2.sdk.*;
+import com.nimbusds.oauth2.sdk.auth.ClientAuthentication;
+import com.nimbusds.oauth2.sdk.auth.ClientSecretBasic;
+import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.nimbusds.oauth2.sdk.id.State;
 
 import com.nimbusds.openid.connect.sdk.Prompt;
@@ -32,14 +35,18 @@ public class LoginController {
     private final static Logger logger = LoggerFactory.getLogger(LoginController.class);
 
     private final String clientIDStr = "oidc_idporten_example_login";
+    private final String clientSecretStr = "7aa3e975-ebe7-44e1-9b53-03dca476c841";
+
+    private final ClientID clientID = new ClientID(clientIDStr);
+    private final Secret clientSecret = new Secret(clientSecretStr);
+
+
     private final String callbackURIStr = "http://localhost:7040/callback";
     private final String endpointURIStr = "https://login.idporten.dev/authorize";
 
     // can use URI.create() since we know the addresses to be valid.
     private final URI callbackURI = URI.create(callbackURIStr);
     private final URI endpointURI = URI.create(endpointURIStr);
-
-    private final ClientID clientID = new ClientID(clientIDStr);
 
     @GetMapping(path = "/login")
     public String login(HttpSession session) {
@@ -85,7 +92,26 @@ public class LoginController {
 
         model.addAttribute("authz_code_attr", authzCode);
 
+        getToken(authzCode, session, model);
+
+        // TODO: ...
+
         return "login_success";
+    }
+
+    // TODO: name and signature.
+    private void getToken(AuthorizationCode authzCode,
+                          HttpSession session,
+                          Model model) {
+
+        AuthorizationGrant codeGrant =
+            new AuthorizationCodeGrant(authzCode, callbackURI);
+        ClientAuthentication clientAuthn =
+            new ClientSecretBasic(clientID, clientSecret);
+
+        // TODO: ...
+
+        throw new MyLoginException("TODO");
     }
 
     private AuthorizationCode getAuthzCodeFromAuthzResponse(
