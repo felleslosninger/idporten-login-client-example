@@ -4,3 +4,7 @@ spring:
       idporten-login-example
   thymeleaf:
     check-template-location: true
+
+server:
+  port:
+    7040
