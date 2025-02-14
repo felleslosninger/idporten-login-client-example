@@ -79,12 +79,18 @@ public class LoginController {
                                 .query(req.getQueryString())
                                 .build()
                                 .toUri();
-        return handleAuthzResponseURI(authzResponseURI, session, model);
+
+        AuthorizationCode authzCode =
+            getAuthzCodeFromAuthzResponse(authzResponseURI, session);
+
+        model.addAttribute("authz_code_attr", authzCode);
+
+        return "login_success";
     }
 
-    private String handleAuthzResponseURI(URI authzResponseURI,
-                                          HttpSession session,
-                                          Model model) {
+    private AuthorizationCode getAuthzCodeFromAuthzResponse(
+        URI authzResponseURI,
+        HttpSession session) {
         try {
             AuthorizationResponse resp =
                 AuthorizationResponse.parse(authzResponseURI);
@@ -103,14 +109,7 @@ public class LoginController {
                 throw new MyLoginException(resp.toErrorResponse().toString());
             }
 
-            model.addAttribute("errmsg_attr", "Success");
-
-            String authzCode = resp.toSuccessResponse()
-                                   .getAuthorizationCode()
-                                   .getValue();
-            model.addAttribute("authz_code_attr", authzCode);
-
-            return "login_success";
+            return resp.toSuccessResponse().getAuthorizationCode();
         }
         catch (ParseException e) {
             throw new MyLoginException("Authorization response parse error", e);
