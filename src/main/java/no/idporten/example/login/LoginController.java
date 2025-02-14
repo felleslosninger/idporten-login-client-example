@@ -1,6 +1,5 @@
 package no.idporten.example.login;
 
-
 import com.nimbusds.oauth2.sdk.*;
 import com.nimbusds.oauth2.sdk.id.State;
 
@@ -35,16 +34,15 @@ public class LoginController {
     private final String clientIDStr = "oidc_idporten_example_login";
     private final String callbackURIStr = "http://localhost:7040/callback";
     private final String endpointURIStr = "https://login.idporten.dev/authorize";
-    final URI callbackURI = URI.create("http://localhost:7040/callback");
+
+    // can use URI.create() since we know the addresses to be valid.
+    private final URI callbackURI = URI.create(callbackURIStr);
+    private final URI endpointURI = URI.create(endpointURIStr);
+
+    private final ClientID clientID = new ClientID(clientIDStr);
 
     @GetMapping(path = "/login")
     public String login(HttpSession session) {
-
-        ClientID clientID = new ClientID(clientIDStr);
-
-        // can use URI.create() since we know the addresses to be valid.
-        URI callbackURI = URI.create(callbackURIStr);
-        URI endpointURI = URI.create(endpointURIStr);
 
         State state = new State();
 
