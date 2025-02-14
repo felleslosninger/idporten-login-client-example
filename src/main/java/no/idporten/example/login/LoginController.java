@@ -8,22 +8,29 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 
 @Controller
 public class LoginController {
 
+    final URI callbackURI = URI.create("http://localhost:7040/callback");
+
     @GetMapping(path = "/callback")
     public String loginCallback(HttpServletRequest req, HttpSession session, Model model) {
-        URI callbackURI = URI.create(req.getRequestURL() + "?" + req.getQueryString());
-        return handleCallbackURI(callbackURI, session, model);
+
+        URI authzResponseURI = UriComponentsBuilder.fromUri(callbackURI)
+                                                   .query(req.getQueryString())
+                                                   .build()
+                                                   .toUri();
+        return handleCallbackURI(authzResponseURI, session, model);
     }
 
-    private String handleCallbackURI(URI callbackURI, HttpSession session, Model model) {
+    private String handleCallbackURI(URI authzResponseURI, HttpSession session, Model model) {
         AuthorizationResponse resp;
         try {
-            resp = AuthorizationResponse.parse(callbackURI);
+            resp = AuthorizationResponse.parse(authzResponseURI);
         }
         catch (ParseException e) {
             model.addAttribute("errmsg_attr", "Authorization response parse error");
