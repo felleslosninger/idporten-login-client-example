@@ -6,7 +6,10 @@ import com.nimbusds.oauth2.sdk.auth.ClientSecretBasic;
 import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.nimbusds.oauth2.sdk.id.State;
 
+import com.nimbusds.oauth2.sdk.token.Tokens;
+import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
 import com.nimbusds.openid.connect.sdk.Prompt;
+import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
@@ -26,6 +29,7 @@ import com.nimbusds.oauth2.sdk.pkce.CodeVerifier;
 import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
 import com.nimbusds.openid.connect.sdk.Nonce;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.Objects;
 
@@ -40,13 +44,13 @@ public class LoginController {
     private final ClientID clientID = new ClientID(clientIDStr);
     private final Secret clientSecret = new Secret(clientSecretStr);
 
-
     private final String callbackURIStr = "http://localhost:7040/callback";
-    private final String endpointURIStr = "https://login.idporten.dev/authorize";
+    private final String authzEndpointURIStr = "https://login.idporten.dev/authorize";
+    private final String tokenEndpointURIStr = "https://idporten.dev/token";
 
-    // can use URI.create() since we know the addresses to be valid.
     private final URI callbackURI = URI.create(callbackURIStr);
-    private final URI endpointURI = URI.create(endpointURIStr);
+    private final URI authzEndpointURI = URI.create(authzEndpointURIStr);
+    private final URI tokenEndpointURI = URI.create(tokenEndpointURIStr);
 
     @GetMapping(path = "/login")
     public String login(HttpSession session) {
@@ -61,7 +65,7 @@ public class LoginController {
                 new Scope("openid"), // TODO: +profile?
                 clientID,
                 callbackURI
-            ).endpointURI(endpointURI)
+            ).endpointURI(authzEndpointURI)
              .state(state)
              .nonce(nonce)
              .codeChallenge(codeVerifier, CodeChallengeMethod.S256) // PKCE
@@ -92,26 +96,64 @@ public class LoginController {
 
         model.addAttribute("authz_code_attr", authzCode);
 
-        getToken(authzCode, session, model);
+        AccessTokenResponse tokenResp = getAccessTokenResp(authzCode, session);
+        Tokens tokens = tokenResp.getTokens();
 
-        // TODO: ...
+        // TODO: which tokens do we need..?
+        session.setAttribute("access_token", tokens.getAccessToken().getValue());
+        session.setAttribute("refresh_token", tokens.getRefreshToken().getValue());
+
+        model.addAttribute("access_token", tokens.getAccessToken().getValue());
+        model.addAttribute("refresh_token", tokens.getRefreshToken().getValue());
+
+        if (tokenResp instanceof OIDCTokenResponse oidcTokenResp) {
+            // TODO: validate OIDC token! but how?
+            OIDCTokens oidcTokens = oidcTokenResp.getOIDCTokens();
+
+            session.setAttribute("oidc_token", oidcTokens.getIDToken().toString());
+            model.addAttribute("oidc_token", oidcTokens.getIDToken().toString());
+        }
 
         return "login_success";
     }
 
     // TODO: name and signature.
-    private void getToken(AuthorizationCode authzCode,
-                          HttpSession session,
-                          Model model) {
+    private AccessTokenResponse getAccessTokenResp(AuthorizationCode authzCode,
+                                                   HttpSession session) {
+        try {
+            CodeVerifier codeVerifier =
+                (CodeVerifier) session.getAttribute("code_verifier");
 
-        AuthorizationGrant codeGrant =
-            new AuthorizationCodeGrant(authzCode, callbackURI);
-        ClientAuthentication clientAuthn =
-            new ClientSecretBasic(clientID, clientSecret);
+            AuthorizationGrant codeGrant =
+                new AuthorizationCodeGrant(authzCode, callbackURI, codeVerifier);
 
-        // TODO: ...
+            ClientAuthentication clientAuthn =
+                new ClientSecretBasic(clientID, clientSecret);
 
-        throw new MyLoginException("TODO");
+            // TODO: what should the scope be here? using TokenRequest without
+            // TODO: scope is deprecated.
+            // Scope scope = new Scope("openid", "profile");
+            TokenRequest tokenReq =
+                new TokenRequest(tokenEndpointURI, clientAuthn, codeGrant);//, scope);
+
+            TokenResponse tokenResp =
+                OIDCTokenResponse.parse(tokenReq.toHTTPRequest().send());
+
+            if (!tokenResp.indicatesSuccess()) {
+                TokenErrorResponse errorResp = tokenResp.toErrorResponse();
+                // TODO: how to get a proper error msg here?
+                throw new MyLoginException("Token request error: " +
+                    errorResp.getErrorObject().toString());
+            }
+
+            return tokenResp.toSuccessResponse();
+        }
+        // TODO: best practice for catching multiple exceptions?
+        catch (
+            IOException |
+            ParseException e) {
+            throw new MyLoginException("Error sending token request", e);
+        }
     }
 
     private AuthorizationCode getAuthzCodeFromAuthzResponse(
