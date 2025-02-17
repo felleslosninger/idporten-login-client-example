@@ -3,11 +3,32 @@
       xmlns:th="http://www.thymeleaf.org"
       lang="nn">
     <head>
+        <title>Login success page</title>
         Login success!
+        <br>
     </head>
 
     <body>
-        Got authz code: <span th:text="${authz_code_attr}"></span>
+
+        Got access token:
+        <br>
+
+        <span th:text="${access_token}">no access token!</span>
+        <br>
+        <br>
+
+        and refresh token:
+        <br>
+
+        <span th:text="${refresh_token}">no refresh token!</span>
+        <br>
+        <br>
+
+        and OIDC token:
+        <br>
+
+        <span th:text="${oidc_token}">no OICD token!</span>
+        <br>
         <br>
 
         <a href="/index">
