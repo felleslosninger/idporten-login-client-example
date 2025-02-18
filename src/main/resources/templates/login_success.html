@@ -1,38 +1,20 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:th="http://www.thymeleaf.org"
-      lang="nn">
+      lang="nb">
     <head>
         <title>Login success page</title>
-        Login success!
-        <br>
     </head>
 
     <body>
-
-        Got access token:
-        <br>
-
-        <span th:text="${access_token}">no access token!</span>
-        <br>
-        <br>
-
-        and refresh token:
-        <br>
-
-        <span th:text="${refresh_token}">no refresh token!</span>
-        <br>
-        <br>
-
-        and OIDC token:
-        <br>
-
-        <span th:text="${oidc_token}">no OICD token!</span>
-        <br>
+        Hello, <span th:text="${pid}"></span>!
         <br>
 
         <a href="/index">
             Home
+        </a>
+        <a href="/login">
+            Login
         </a>
     </body>
 </html>
