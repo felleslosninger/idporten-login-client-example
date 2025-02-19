@@ -1,7 +1,8 @@
-package no.idporten.example.login;
+package no.idporten.example.login.web;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import no.idporten.example.login.service.LoginException;
 import no.idporten.example.login.service.LoginService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

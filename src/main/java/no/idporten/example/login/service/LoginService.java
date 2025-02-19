@@ -18,7 +18,6 @@ import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import no.idporten.example.login.config.LoginProperties;
-import no.idporten.example.login.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

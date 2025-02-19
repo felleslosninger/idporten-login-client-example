@@ -1,4 +1,4 @@
-package no.idporten.example.login;
+package no.idporten.example.login.service;
 
 public class LoginException extends RuntimeException {
 

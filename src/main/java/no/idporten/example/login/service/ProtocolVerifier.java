@@ -1,4 +1,4 @@
-package no.idporten.example.login;
+package no.idporten.example.login.service;
 
 import com.nimbusds.oauth2.sdk.id.State;
 import com.nimbusds.oauth2.sdk.pkce.CodeVerifier;
