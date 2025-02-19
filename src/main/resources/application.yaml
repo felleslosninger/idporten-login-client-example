@@ -8,3 +8,20 @@ spring:
 server:
   port:
     7040
+
+login-application-old:
+  base-uri: http://localhost:${server.port}
+  client:
+    client-id: oidc_idporten_example_login
+    client-secret: 7aa3e975-ebe7-44e1-9b53-03dca476c841
+    issuer: https://idporten.dev
+    redirect-uri: http://localhost:7040/callback
+
+login-application:
+  base-uri: http://localhost:${server.port}
+  client:
+    client-id: oidc_idporten_example_login
+    client-secret: 7aa3e975-ebe7-44e1-9b53-03dca476c841
+    redirect-uri: ${login-application.base-uri}/callback
+  op:
+    issuer: https://idporten.dev

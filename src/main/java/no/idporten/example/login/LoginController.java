@@ -1,24 +1,23 @@
 package no.idporten.example.login;
 
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.proc.BadJOSEException;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.oauth2.sdk.*;
 import com.nimbusds.oauth2.sdk.auth.ClientAuthentication;
 import com.nimbusds.oauth2.sdk.auth.ClientSecretBasic;
 import com.nimbusds.oauth2.sdk.auth.Secret;
-import com.nimbusds.oauth2.sdk.id.Issuer;
+import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.id.State;
 
 import com.nimbusds.oauth2.sdk.token.Tokens;
 import com.nimbusds.openid.connect.sdk.Nonce;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
 import com.nimbusds.openid.connect.sdk.claims.ClaimsSet;
+import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import no.idporten.example.login.config.LoginProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
@@ -29,14 +28,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.nimbusds.oauth2.sdk.ResponseType;
 import com.nimbusds.oauth2.sdk.Scope;
-import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.pkce.CodeChallengeMethod;
 import com.nimbusds.oauth2.sdk.pkce.CodeVerifier;
 
 import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.Objects;
@@ -44,29 +41,22 @@ import java.util.Objects;
 @Controller
 public class LoginController {
 
-    private final static Logger logger = LoggerFactory.getLogger(LoginController.class);
+    private final OIDCProviderMetadata oidcProviderMetadata;
 
-    private final String clientIDStr = "oidc_idporten_example_login";
-    private final String clientSecretStr = "7aa3e975-ebe7-44e1-9b53-03dca476c841";
+    private final ClientID clientID;
+    private final Secret clientSecret;
+    private final URI redirectUri;
 
-    private final ClientID clientID = new ClientID(clientIDStr);
-    private final Secret clientSecret = new Secret(clientSecretStr);
+    public LoginController(LoginProperties loginProperties,
+                           OIDCProviderMetadata oidcProviderMetadata) {
+        this.oidcProviderMetadata = oidcProviderMetadata;
+        this.clientID = loginProperties.client().clientID();
+        this.clientSecret = loginProperties.client().clientSecret();
+        this.redirectUri = loginProperties.client().redirectUri();
+    }
 
-    private final String callbackURIStr = "http://localhost:7040/callback";
-    private final String authzEndpointURIStr = "https://login.idporten.dev/authorize";
-    private final String tokenEndpointURIStr = "https://idporten.dev/token";
-
-    private final String jwksEndpointURIStr = "https://idporten.dev/jwks.json";
-
-    private final String issuerURIStr = "https://idporten.dev";
-
-    private final URI callbackURI = URI.create(callbackURIStr);
-
-    private final URI authzEndpointURI = URI.create(authzEndpointURIStr);
-    private final URI tokenEndpointURI = URI.create(tokenEndpointURIStr);
-
-    private final URI jwksEndpointURI = URI.create(jwksEndpointURIStr);
-    private final URI issuerURI = URI.create(issuerURIStr);
+    private final static Logger logger =
+        LoggerFactory.getLogger(LoginController.class);
 
     @GetMapping(path = "/login")
     public String login(HttpSession session) {
@@ -76,10 +66,10 @@ public class LoginController {
         AuthenticationRequest request =
             new AuthenticationRequest.Builder(
                 ResponseType.CODE,   // use authorization code flow.
-                new Scope("openid"), // TODO: +profile?
+                new Scope("openid"),
                 clientID,
-                callbackURI
-            ).endpointURI(authzEndpointURI)
+                redirectUri
+            ).endpointURI(oidcProviderMetadata.getAuthorizationEndpointURI())
              .state(myVerifier.state())
              .nonce(myVerifier.nonce())
              .codeChallenge(myVerifier.codeVerifier(), CodeChallengeMethod.S256)
@@ -98,7 +88,7 @@ public class LoginController {
         HttpSession session,
         Model model) {
         URI authzResponseURI =
-            UriComponentsBuilder.fromUri(callbackURI)
+            UriComponentsBuilder.fromUri(redirectUri)
                                 .query(req.getQueryString())
                                 .build()
                                 .toUri();
@@ -135,14 +125,16 @@ public class LoginController {
 
     private ClaimsSet validateIdToken(JWT token, HttpSession session) {
         try {
-            Issuer issuer = new Issuer(issuerURI);
 
-            // TODO: acquire these dynamically..?
-            JWSAlgorithm jwsAlgorithm = new JWSAlgorithm("RS256");
-            URL jwkSetUrl = jwksEndpointURI.toURL();
+            JWSAlgorithm jwsAlgorithm =
+                (JWSAlgorithm) token.getHeader().getAlgorithm();
+            URL jwkSetUrl = oidcProviderMetadata.getJWKSetURI().toURL();
 
             IDTokenValidator idTokenValidator =
-                new IDTokenValidator(issuer, clientID, jwsAlgorithm, jwkSetUrl);
+                new IDTokenValidator(oidcProviderMetadata.getIssuer(),
+                                     clientID,
+                                     jwsAlgorithm,
+                                     jwkSetUrl);
 
             Nonce expectedNonce =
                 ProtocolVerifier.fromHttpSession(session).nonce();
@@ -164,14 +156,20 @@ public class LoginController {
                 ProtocolVerifier.fromHttpSession(session).codeVerifier();
 
             AuthorizationGrant codeGrant =
-                new AuthorizationCodeGrant(authzCode, callbackURI, codeVerifier);
+                new AuthorizationCodeGrant(
+                    authzCode,
+                    redirectUri,
+                    codeVerifier);
 
             ClientAuthentication clientAuthn =
                 new ClientSecretBasic(clientID, clientSecret);
 
             Scope scope = new Scope("openid");
             TokenRequest tokenReq =
-                new TokenRequest(tokenEndpointURI, clientAuthn, codeGrant, scope);
+                new TokenRequest(oidcProviderMetadata.getTokenEndpointURI(),
+                                 clientAuthn,
+                                 codeGrant,
+                                 scope);
 
             TokenResponse tokenResp =
                 OIDCTokenResponse.parse(tokenReq.toHTTPRequest().send());
