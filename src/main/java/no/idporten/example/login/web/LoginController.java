@@ -25,6 +25,11 @@ public class LoginController {
         this.loginService = loginService;
     }
 
+    @GetMapping(path = "/")
+    public String index() {
+        return "index";
+    }
+
     @GetMapping(path = "/login")
     public String loginRequest(HttpSession session) {
         // adds "protocol_verifier" to session.
