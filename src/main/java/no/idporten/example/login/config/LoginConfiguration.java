@@ -7,15 +7,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class LoginConfiguration {
 
-    private final LoginProperties loginProperties;
+    private final LoginProperties.OpProperties opProperties;
 
-    public LoginConfiguration(LoginProperties loginProperties) {
-        this.loginProperties = loginProperties;
+    public LoginConfiguration(LoginProperties.OpProperties opProperties) {
+        this.opProperties = opProperties;
     }
 
     @Bean
     public OIDCProviderMetadata getOidcProviderMetaData() throws Exception {
         // TODO: timeout?
-        return OIDCProviderMetadata.resolve(loginProperties.op().issuer());
+        return OIDCProviderMetadata.resolve(opProperties.issuer());
     }
 }

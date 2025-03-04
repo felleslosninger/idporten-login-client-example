@@ -13,16 +13,28 @@ import java.net.URI;
 @ConfigurationProperties(prefix = "login-application")
 public record LoginProperties(
     @NotNull URI baseUri,
-    @NotNull ClientProperties client,
+    @NotNull RpProperties rp,
     @NotNull OpProperties op
 ) {
 
-    public record ClientProperties(
-        @NotNull ClientID clientID,
-        @NotNull Secret clientSecret,
-        @NotNull URI redirectUri
-    ) {}
+    public record RpProperties(
+        @NotNull ServiceProperties service,
+        @NotNull WebProperties web
+    ) {
 
+        @ConfigurationProperties(prefix = "login-application.rp.service")
+        public record ServiceProperties(
+            @NotNull ClientID clientID,
+            @NotNull Secret clientSecret
+        ) {}
+
+        @ConfigurationProperties(prefix = "login-application.rp.web")
+        public record WebProperties(
+            @NotNull URI redirectUri
+        ) {}
+    }
+
+    @ConfigurationProperties(prefix = "login-application.op")
     public record OpProperties(
         @NotNull Issuer issuer
     ) {}
