@@ -1,6 +1,5 @@
 package no.idporten.example.login.web;
 
-import com.nimbusds.jwt.JWT;
 import com.nimbusds.oauth2.sdk.*;
 import com.nimbusds.oauth2.sdk.token.Tokens;
 import com.nimbusds.openid.connect.sdk.OIDCTokenResponse;
@@ -52,7 +51,8 @@ public class LoginController {
                         .toURI()
                         .toString();
 
-        session.setAttribute("protocol_verifier", protocolVerifier);
+        session.setAttribute(ProtocolVerifier.protocolVerifierAttrId,
+                             protocolVerifier);
 
         return "redirect:" + requestUriStr;
     }

@@ -15,6 +15,8 @@ public record ProtocolVerifier(
     }
 
     public static ProtocolVerifier fromHttpSession(HttpSession session) {
-        return (ProtocolVerifier) session.getAttribute("protocol_verifier");
+        return (ProtocolVerifier) session.getAttribute(protocolVerifierAttrId);
     }
+
+    public static final String protocolVerifierAttrId = "protocol_verifier";
 }
