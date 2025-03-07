@@ -51,8 +51,8 @@ public class LoginController {
                         .toURI()
                         .toString();
 
-        session.setAttribute(ProtocolVerifier.protocolVerifierAttrId,
-                             protocolVerifier);
+        // only add protocolVerifier to session if authn request was successful.
+        protocolVerifier.pushToHttpSession(session);
 
         return "redirect:" + requestUriStr;
     }
@@ -70,7 +70,11 @@ public class LoginController {
                                 .toUri();
 
         ProtocolVerifier protocolVerifier =
-            ProtocolVerifier.fromHttpSession(session);
+            ProtocolVerifier.popFromHttpSession(session);
+
+        if (protocolVerifier == null) {
+            throw new LoginException("No protocol verifier found for session!");
+        }
 
         AuthorizationCode authzCode =
             loginService.getAuthzCodeFromAuthzResponse(

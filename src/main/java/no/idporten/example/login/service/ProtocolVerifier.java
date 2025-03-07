@@ -14,9 +14,17 @@ public record ProtocolVerifier(
         this(new State(), new Nonce(), new CodeVerifier());
     }
 
-    public static ProtocolVerifier fromHttpSession(HttpSession session) {
-        return (ProtocolVerifier) session.getAttribute(protocolVerifierAttrId);
+    public static final String protocolVerifierAttrId = "protocol_verifier";
+
+    public static ProtocolVerifier popFromHttpSession(HttpSession session) {
+        ProtocolVerifier protocolVerifier =
+            (ProtocolVerifier) session.getAttribute(protocolVerifierAttrId);
+        session.removeAttribute(protocolVerifierAttrId); // OK if not exists.
+        return protocolVerifier;
     }
 
-    public static final String protocolVerifierAttrId = "protocol_verifier";
+    public void pushToHttpSession(HttpSession session) {
+        session.setAttribute(protocolVerifierAttrId, this);
+    }
+
 }
