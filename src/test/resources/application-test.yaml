@@ -11,11 +11,9 @@ server:
 
 login-application:
   base-uri: http://localhost:${server.port}
-  rp:
-    service:
-      client-id: oidc_idporten_example_login
-      client-secret: 7aa3e975-ebe7-44e1-9b53-03dca476c841
-    web:
-      redirect-uri: ${login-application.base-uri}/callback
+  client:
+    client-id: oidc_idporten_example_login
+    client-secret: 7aa3e975-ebe7-44e1-9b53-03dca476c841
+    redirect-uri: ${login-application.base-uri}/callback
   op:
     issuer: https://idporten.dev
