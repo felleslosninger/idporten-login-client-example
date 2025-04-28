@@ -24,6 +24,7 @@ import com.nimbusds.oauth2.sdk.pkce.CodeVerifier;
 
 import com.nimbusds.openid.connect.sdk.AuthenticationRequest;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.util.Objects;
@@ -92,6 +93,7 @@ public class LoginService {
 
     private ClaimsSet validateOidcToken(JWT oidcToken, Nonce expectedNonce) {
         try {
+
             JWSAlgorithm jwsAlgorithm =
                 (JWSAlgorithm) oidcToken.getHeader().getAlgorithm();
             URL jwkSetUrl = oidcProviderMetadata.getJWKSetURI().toURL();
@@ -136,5 +138,69 @@ public class LoginService {
               ParseException e) {
             throw new LoginException("Authorization response parse error", e);
         }
+    }
+
+    /*
+     * using PAR
+     */
+    public PushedAuthorizationRequest makePar(
+        ProtocolVerifier protocolVerifier,
+        URI redirectURI
+    ) {
+        AuthorizationRequest authzRequest =
+            new AuthorizationRequest.Builder(
+                ResponseType.CODE,
+                serviceProperties.clientID()
+            ).scope(new Scope("openid"))
+             .redirectionURI(redirectURI)
+             .state(protocolVerifier.state())
+             .codeChallenge(protocolVerifier.codeVerifier(), CodeChallengeMethod.S256)
+             .build();
+
+        ClientAuthentication clientAuthn =
+            new ClientSecretBasic(serviceProperties.clientID(),
+                                  serviceProperties.clientSecret());
+        return new PushedAuthorizationRequest(
+            oidcProviderMetadata.getPushedAuthorizationRequestEndpointURI(),
+            clientAuthn,
+            authzRequest
+        );
+    }
+
+    public PushedAuthorizationSuccessResponse sendPar(
+        PushedAuthorizationRequest par
+    ) {
+        try {
+            PushedAuthorizationResponse parResponse =
+                PushedAuthorizationResponse.parse(par.toHTTPRequest().send());
+            if (!parResponse.indicatesSuccess()) {
+                ErrorResponse errorResponse = parResponse.toErrorResponse();
+                throw new LoginException("PAR error: " + errorResponse.getErrorObject().toString());
+            }
+            return parResponse.toSuccessResponse();
+        }
+        catch (IOException e) {
+            throw new LoginException("Failed to send PAR", e);
+        }
+        catch (ParseException e) {
+            throw new LoginException("Failed to parse PAR response", e);
+        }
+    }
+
+    public AuthenticationRequest makeAuthnRequestWithParRequestUri(
+        ProtocolVerifier verifier,
+        URI redirectUri,
+        URI parRequestUri
+    ) {
+        return
+            new AuthenticationRequest.Builder(
+                ResponseType.CODE,
+                new Scope("openid"),
+                serviceProperties.clientID(),
+                redirectUri
+            ).endpointURI(oidcProviderMetadata.getAuthorizationEndpointURI())
+             .requestURI(parRequestUri)
+             .nonce(verifier.nonce())
+             .build();
     }
 }
