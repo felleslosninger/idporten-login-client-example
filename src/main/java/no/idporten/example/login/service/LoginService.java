@@ -93,7 +93,6 @@ public class LoginService {
 
     private ClaimsSet validateOidcToken(JWT oidcToken, Nonce expectedNonce) {
         try {
-
             JWSAlgorithm jwsAlgorithm =
                 (JWSAlgorithm) oidcToken.getHeader().getAlgorithm();
             URL jwkSetUrl = oidcProviderMetadata.getJWKSetURI().toURL();
@@ -189,17 +188,13 @@ public class LoginService {
 
     public AuthenticationRequest makeAuthnRequestWithParRequestUri(
         ProtocolVerifier verifier,
-        URI redirectUri,
         URI parRequestUri
     ) {
         return
             new AuthenticationRequest.Builder(
-                ResponseType.CODE,
-                new Scope("openid"),
-                serviceProperties.clientID(),
-                redirectUri
+                parRequestUri,
+                serviceProperties.clientID()
             ).endpointURI(oidcProviderMetadata.getAuthorizationEndpointURI())
-             .requestURI(parRequestUri)
              .nonce(verifier.nonce())
              .build();
     }

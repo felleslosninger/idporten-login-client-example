@@ -71,7 +71,6 @@ public class LoginController {
         String requestUriStr =
             loginService.makeAuthnRequestWithParRequestUri(
                 protocolVerifier,
-                webProperties.redirectUri(),
                 parSuccessResponse.getRequestURI()
             ).toURI()
              .toString();
@@ -140,7 +139,6 @@ public class LoginController {
         model.addAttribute("pid", pidStr);
         model.addAttribute("acr", acrStr);
     }
-
 
     private AccessTokenResponse sendTokenRequest(TokenRequest tokenRequest) {
         try {
