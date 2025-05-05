@@ -147,11 +147,13 @@ public class LoginService {
         URI redirectURI
     ) {
         AuthorizationRequest authzRequest =
-            new AuthorizationRequest.Builder(
+            new AuthenticationRequest.Builder(
                 ResponseType.CODE,
-                serviceProperties.clientID()
-            ).scope(new Scope("openid"))
-             .redirectionURI(redirectURI)
+                new Scope("openid"),
+                serviceProperties.clientID(),
+                redirectURI
+            )
+             .nonce(protocolVerifier.nonce())
              .state(protocolVerifier.state())
              .codeChallenge(protocolVerifier.codeVerifier(), CodeChallengeMethod.S256)
              .build();
@@ -186,16 +188,12 @@ public class LoginService {
         }
     }
 
-    public AuthenticationRequest makeAuthnRequestWithParRequestUri(
-        ProtocolVerifier verifier,
-        URI parRequestUri
-    ) {
+    public AuthorizationRequest makeAuthzRequestWithParRequestUri(URI parRequestUri) {
         return
-            new AuthenticationRequest.Builder(
+            new AuthorizationRequest.Builder(
                 parRequestUri,
                 serviceProperties.clientID()
             ).endpointURI(oidcProviderMetadata.getAuthorizationEndpointURI())
-             .nonce(verifier.nonce())
              .build();
     }
 }

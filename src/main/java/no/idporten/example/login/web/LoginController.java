@@ -69,8 +69,7 @@ public class LoginController {
             loginService.sendPar(par);
 
         String requestUriStr =
-            loginService.makeAuthnRequestWithParRequestUri(
-                protocolVerifier,
+            loginService.makeAuthzRequestWithParRequestUri(
                 parSuccessResponse.getRequestURI()
             ).toURI()
              .toString();
