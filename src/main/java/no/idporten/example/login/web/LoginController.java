@@ -57,6 +57,27 @@ public class LoginController {
         return "redirect:" + requestUriStr;
     }
 
+    @GetMapping(path = "/loginPar")
+    public String loginRequestWithPar(HttpSession session) {
+
+        ProtocolVerifier protocolVerifier = new ProtocolVerifier();
+
+        PushedAuthorizationRequest par =
+            loginService.makePar(protocolVerifier, webProperties.redirectUri());
+
+        PushedAuthorizationSuccessResponse parSuccessResponse =
+            loginService.sendPar(par);
+
+        String requestUriStr =
+            loginService.makeAuthzRequestWithParRequestUri(
+                parSuccessResponse.getRequestURI()
+            ).toURI()
+             .toString();
+
+        protocolVerifier.pushToHttpSession(session);
+        return "redirect:" + requestUriStr;
+    }
+
     @GetMapping(path = "/callback")
     public String loginCallback(
         HttpServletRequest request, HttpSession session, Model model
@@ -117,7 +138,6 @@ public class LoginController {
         model.addAttribute("pid", pidStr);
         model.addAttribute("acr", acrStr);
     }
-
 
     private AccessTokenResponse sendTokenRequest(TokenRequest tokenRequest) {
         try {
